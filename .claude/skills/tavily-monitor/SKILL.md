@@ -44,7 +44,10 @@ extract for a pricing page, a changelog, a docs page, or a status page.
    is 168. Use `0` when the interval is under an hour, and `720` when it is
    longer than 30 days. Read how the parameter works in the search reference of
    `tavily-search`. Write the number in the monitor file and send it on every
-   run, including the first. Extract does not take `max_age_hours`.
+   run, including the first. Extract does not take `max_age_hours`. The Tavily
+   CLI 0.2.1 has no flag for it, so a CLI-only monitor cannot send it: use the
+   MCP tools or a direct API call when freshness matters, or record in the
+   monitor file that a run may return a copy cached before the cadence.
 4. Run it once. If the results are the wrong kind of thing, fix the query or
    the URLs and run again before you save anything. If the search is refused
    with `434`, the run did not complete. Say so, and leave `snapshot.json` as

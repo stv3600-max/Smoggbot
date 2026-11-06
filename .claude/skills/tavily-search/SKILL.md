@@ -8,8 +8,13 @@ allowed-tools: Bash(tvly *)
 # Tavily search
 
 Use the `tavily_search`, `tavily_extract`, `tavily_map` and `tavily_crawl` tools if your tool list has them
-(some clients add a prefix such as `mcp__tavily__`). Otherwise run `tvly <command> --json` directly; there's no
+(some clients add a prefix such as `mcp__tavily__`). Otherwise run `tvly <command>` directly; there's no
 need to check for it first. If neither works, follow [setup](references/setup.md).
+
+Since CLI 0.2.1 the CLI detects that stdout is not a terminal — a pipe or a coding agent's shell — and prints
+readable plain text instead of JSON: `search` prints each result's title, full URL and a snippet, `map` prints
+one URL per line, `extract` and `crawl` print each page in full with links kept. Add `--json` only when you
+need to parse specific fields; for reading, plain text costs far less context.
 
 Parameters are named as in the API (`max_results`). The CLI spells them as flags (`--max-results`) with
 comma-separated lists (`--include-domains sec.gov,reuters.com`). For exact parameters, read the tool schema,
@@ -37,20 +42,32 @@ search the details again in their own words before adding names or filters you g
 candidates from results, not memory. When a detail keeps coming back empty, work out what it refers to, such as
 the role, event or term, and search for that.
 
-Each result's `content` is already the passages that match your query; print it whole rather than cutting it short.
+Each result's `content` is already the passages that match your query; print it whole rather than cutting it
+short. In plain-text output `--max-chars` caps how much of each result's content is printed: it defaults to 600
+and is shared across queries (300 each for 2, 200 for 3). Pass `--max-chars 0` to print content whole. `--json`
+output and `-o` files are never truncated.
 
-**Batch independent searches.** Issue the searches for one step together in one turn, one call each: separate
-`tavily_search` calls with MCP tools, or separate Bash calls with the CLI, each holding a single `tvly` command.
-MCP calls run in parallel; Bash calls run one after another but still use one turn. Don't add pipes, `&`, `$(...)`
-or other programs to a `tvly` call, which make the client ask for permission. Put the query in single quotes:
-`tvly search 'Rust 2024 edition release date' --depth advanced --max-results 10 --json`.
+**Batch independent searches.** With MCP tools, issue separate `tavily_search` calls in one turn; they run in
+parallel. With the CLI, pass up to 5 queries to a single `tvly search` call — they run in parallel with the same
+options, so prefer this over several Bash calls, which run one after another:
+`tvly search 'Rust 2024 edition release date' 'Rust 2024 edition new features' --depth advanced --max-results 10`.
+Use separate calls only when the queries need different options. A lone `-` as the query reads it from stdin.
+Don't add pipes, `&`, `$(...)` or other programs to a `tvly` call, which make the client ask for permission.
+Put each query in single quotes.
 
 **Ask for 10 results.** Set `max_results` to 10 (`--max-results 10`). **Narrow before you widen.** Filters help more than raising `max_results` further. Use `time_range` or dates for
 recent events or a stated period. Use `include_domains` when the answer lives on an official or named site; it
 is a hard filter, so search again without it if it doesn't find the page.
 
+**Some parameters are API-only.** The API has `max_age_hours` for content freshness (1-720; `0` always fetches
+the page live, `-1` never does) and `include_domains_mode: "prefer"` to boost domains instead of hard-filtering
+them. CLI 0.2.1 exposes no flag for either. Run `tvly <command> --help` before assuming a flag exists, and use
+an SDK or a direct API call when you need one of these.
+
 **Keep large results on disk.** When a result is long, such as raw page content or a crawl, save it with
-`-o <file>` and read the parts you need with your file-reading tool instead of printing it all. To reuse a file,
+`-o <file>` and read the parts you need with your file-reading tool instead of printing it all. Bare `-o` with
+no value saves the full JSON under `.tavily/` with a generated name and prints the path; pass an explicit path
+when the file belongs somewhere specific, such as a scratch directory. To reuse a file,
 use the path you wrote; never look for it with a glob over temp folders, which can read another task's files. An
 MCP result lands straight in your context, so keep those calls small.
 
@@ -82,3 +99,9 @@ When the user wants an in-depth report that needs many sources gathered and weig
 comparison across several criteria or an in-depth investigation, use `tavily-research` instead of your own searches.
 If it isn't installed, run `npx skills add tavily-ai/skills --skill tavily-research` and read its SKILL.md first. A
 single fact or answer to find stays here.
+
+---
+
+**Local copy.** Vendored from `tavily-ai/skills`, then edited for Tavily CLI 0.2.1 (released 2026-10-30) to cover
+plain-text output in agent shells, multi-query search, `--max-chars`, bare `-o`, and which parameters remain
+API-only. This file therefore diverges from upstream. Re-check it against `tvly search --help` after `tvly update`.

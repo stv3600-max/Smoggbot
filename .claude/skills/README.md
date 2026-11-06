@@ -39,6 +39,22 @@ instead; the egress proxy then attaches it to `api.tavily.com` requests, and
 `TAVILY_API_KEY` only needs a format-correct placeholder so the CLI's local check
 passes. Never commit a real key.
 
+### Local edits (divergence from upstream)
+
+Two files were edited against the behaviour of CLI 0.2.1, verified with
+`tvly search --help`, so they no longer match upstream:
+
+- **`tavily-search/SKILL.md`** — the CLI now prints plain text when stdout is not a
+  terminal, so `--json` is optional and costs more context; up to 5 queries run in
+  parallel in one `tvly search` call; `--max-chars` caps printed content (default 600,
+  shared across queries, `0` for whole); bare `-o` saves JSON under `.tavily/`. Also
+  records that `max_age_hours` and `include_domains_mode` are API-only.
+- **`tavily-monitor/SKILL.md`** — its cadence mechanism relies on `max_age_hours`, which
+  CLI 0.2.1 cannot send. Noted, with the MCP/API alternatives.
+
+Re-check both after `tvly update`, and expect conflicts when re-running
+`npx skills add tavily-ai/skills`.
+
 ### Network access
 
 Tavily hosts must be reachable: `api.tavily.com` (API), `cli.tavily.com`
